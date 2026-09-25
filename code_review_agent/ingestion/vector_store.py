@@ -17,18 +17,35 @@ class CodeVectorStore:
         collection_name: Optional[str] = None,
         location: Optional[str] = None,
         api_key: Optional[str] = None,
+        url: Optional[str] = None,
+        qdrant_api_key: Optional[str] = None,
     ):
         self.collection_name = collection_name or settings.qdrant_collection_name
         self.location = location or settings.qdrant_path
         self.gemini_api_key = api_key or settings.gemini_api_key
+        self.url = url or settings.qdrant_url
+        self.qdrant_api_key = qdrant_api_key or settings.qdrant_api_key
 
-        # Initialize Qdrant Client (in-memory or persistent local)
-        if self.location == ":memory:":
+        # Initialize Qdrant Client (Cloud URL, in-memory, or persistent local path)
+        if self.url:
+            try:
+                self.client = QdrantClient(
+                    url=self.url,
+                    api_key=self.qdrant_api_key or None,
+                    timeout=3,
+                    check_compatibility=False
+                )
+                self._init_collection()
+            except Exception:
+                # Fallback to transient in-memory store if network is isolated/offline
+                self.client = QdrantClient(":memory:")
+                self._init_collection()
+        elif self.location == ":memory:":
             self.client = QdrantClient(":memory:")
+            self._init_collection()
         else:
             self.client = QdrantClient(path=self.location)
-
-        self._init_collection()
+            self._init_collection()
 
     def _init_collection(self):
         """Ensures the target collection exists with Cosine distance."""
@@ -110,22 +127,33 @@ class CodeVectorStore:
                 )
             )
 
-        self.client.upsert(
-            collection_name=self.collection_name,
-            points=points
-        )
+        try:
+            self.client.upsert(
+                collection_name=self.collection_name,
+                points=points
+            )
+        except Exception:
+            # Fallback to local in-memory client
+            self.client = QdrantClient(":memory:")
+            self._init_collection()
+            self.client.upsert(collection_name=self.collection_name, points=points)
         return len(points)
 
     def search_similar_code(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
         """Finds logically or semantically related code chunks."""
         query_vector = self._get_embedding(query)
-        result = self.client.query_points(
-            collection_name=self.collection_name,
-            query=query_vector,
-            limit=limit
-        )
+        try:
+            result = self.client.query_points(
+                collection_name=self.collection_name,
+                query=query_vector,
+                limit=limit
+            )
+            points = result.points
+        except Exception:
+            return []
+
         results = []
-        for hit in result.points:
+        for hit in points:
             results.append({
                 "score": hit.score,
                 "payload": hit.payload

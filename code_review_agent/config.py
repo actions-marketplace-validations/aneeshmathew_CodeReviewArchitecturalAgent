@@ -32,9 +32,17 @@ class Settings(BaseModel):
     )
 
     # Qdrant Vector Store
+    qdrant_url: str = Field(
+        default_factory=lambda: os.getenv("QDRANT_URL", ""),
+        description="Remote Qdrant Cloud cluster URL.",
+    )
+    qdrant_api_key: str = Field(
+        default_factory=lambda: os.getenv("QDRANT_API_KEY", ""),
+        description="Qdrant Cloud API key.",
+    )
     qdrant_path: str = Field(
         default=":memory:",
-        description="Path to local Qdrant database or ':memory:' for transient store.",
+        description="Path to local Qdrant database or ':memory:' for transient store when URL is not set.",
     )
     qdrant_collection_name: str = Field(
         default="codebase_symbols",
@@ -43,7 +51,10 @@ class Settings(BaseModel):
 
     # GitHub Integration
     github_token: str = Field(
-        default_factory=lambda: os.getenv("GITHUB_TOKEN", "")
+        default_factory=lambda: (
+            os.getenv("GITHUB_TOKEN", "").strip()
+            or _resolve_gh_cli_token()
+        )
     )
     github_webhook_secret: str = Field(
         default_factory=lambda: os.getenv("GITHUB_WEBHOOK_SECRET", "")
@@ -54,6 +65,18 @@ class Settings(BaseModel):
         default=True,
         description="If True, pause before committing structural or breaking changes.",
     )
+
+
+def _resolve_gh_cli_token() -> str:
+    """Attempts to auto-resolve token from system `gh` CLI if user logged in via `gh auth login`."""
+    try:
+        import subprocess
+        res = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=2)
+        if res.returncode == 0 and res.stdout.strip():
+            return res.stdout.strip()
+    except Exception:
+        pass
+    return ""
 
 
 settings = Settings()
