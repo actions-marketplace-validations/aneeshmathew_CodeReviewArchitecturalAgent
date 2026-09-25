@@ -28,6 +28,10 @@ dependencies = [
 [project.scripts]
 code-review-agent = "code_review_agent.cli:main"
 
+[tool.setuptools.packages.find]
+include = ["code_review_agent*"]
+exclude = ["benchmark_sample*", "tests*"]
+
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
