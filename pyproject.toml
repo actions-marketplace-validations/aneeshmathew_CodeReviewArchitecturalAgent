@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "code-review-agent"
+version = "0.1.0"
+description = "Self-Correcting Code Review & Architectural Audit Agent"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "google-genai>=2.3.0",
+    "langgraph>=0.2.0",
+    "langchain-core",
+    "tree-sitter",
+    "tree-sitter-python",
+    "qdrant-client",
+    "ruff",
+    "mypy",
+    "pytest",
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "python-dotenv",
+    "PyGithub"
+]
+
+[project.scripts]
+code-review-agent = "code_review_agent.cli:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
