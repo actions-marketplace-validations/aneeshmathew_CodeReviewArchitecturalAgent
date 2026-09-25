@@ -226,26 +226,61 @@ python -m code_review_agent.cli audit --path /path/to/your/project --files main.
 
 ---
 
-## 🌐 Step 8: GitHub Integration (No Token Needed!)
+## 🌐 Step 8: GitHub Action & Marketplace Publishing (Option 1)
 
-You never need to copy-paste or expose Personal Access Tokens to use this agent with GitHub:
+With Option 1, you **never** need to host a server or share personal tokens. GitHub handles all execution for free on every Pull Request!
 
-### Option A: Automatic GitHub CLI Detection
-If you have the official GitHub CLI (`gh`) installed and have already run `gh auth login`, the agent **automatically detects your active session token**. You do not need to set `GITHUB_TOKEN` in `.env`.
+### 8.1 How Another Repo Uses Your GitHub Action
+Any developer can add your agent to their repository by dropping this simple workflow file into `.github/workflows/code_review.yml`:
 
-### Option B: Native GitHub Actions (Recommended)
-This repository includes [`.github/workflows/code_review.yml`](file:///.github/workflows/code_review.yml).
-When you push this repository to GitHub:
-1. Every time someone opens a Pull Request, GitHub Actions triggers automatically.
-2. GitHub automatically provides a temporary, safe `${{ secrets.GITHUB_TOKEN }}`.
-3. The agent reviews the PR, runs the tests, and reports back—with zero setup!
+```yaml
+name: "Architectural Code Review"
 
-### Option C: GitHub Webhook Server
-If you want to run your own self-hosted webhook server to receive GitHub events:
-```bash
-python -m code_review_agent.cli serve --port 8000
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Self-Correcting Code Review Agent
+        uses: your-username/CodeReviewArchitecturalAgent@v1
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          qdrant_url: ${{ secrets.QDRANT_URL }}
+          qdrant_api_key: ${{ secrets.QDRANT_API_KEY }}
+          auto_approve: "true"
 ```
-This starts a high-performance **FastAPI** server that listens for incoming `pull_request` and `push` events at `http://your-server:8000/webhook`.
+
+### 8.2 How to Publish to GitHub Marketplace in 3 Minutes:
+1. **Push your code to GitHub**:
+   ```bash
+   git remote add origin https://github.com/your-username/CodeReviewArchitecturalAgent.git
+   git branch -M main
+   git push -u origin main
+   ```
+2. **Create a Release**:
+   - Go to your repository on GitHub.
+   - Click **Releases** (on the right) -> **Draft a new release**.
+   - Type tag version: `v1.0.0` (click "Create new tag: v1.0.0 on publish").
+   - Title: `v1.0.0: Initial Release`.
+3. **Check the Marketplace box**:
+   - Check **"Publish this Action to the GitHub Marketplace"**.
+   - Choose primary category: **Code quality**.
+   - Click **Publish release**.
+
+That's it! Your Action is now live on the **GitHub Marketplace** for the world to use.
 
 ---
 

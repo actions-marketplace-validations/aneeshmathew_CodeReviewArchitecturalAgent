@@ -1,0 +1,68 @@
+name: "Self-Correcting Code Review & Architectural Audit Agent"
+description: "Autonomous code review, AST static analysis (Ruff, Mypy, Pytest), and self-correcting fix synthesis powered by Google Gemini 3.5 Flash-Lite."
+author: "Google DeepMind Advanced Agentic Coding"
+branding:
+  icon: "check-circle"
+  color: "purple"
+
+inputs:
+  gemini_api_key:
+    description: "Google Gemini API key (Free Tier). If omitted, heuristic fallback engine is used."
+    required: false
+    default: ""
+  qdrant_url:
+    description: "Qdrant Cloud cluster endpoint URL (optional)."
+    required: false
+    default: ""
+  qdrant_api_key:
+    description: "Qdrant Cloud API key (optional)."
+    required: false
+    default: ""
+  github_token:
+    description: "GitHub token for commenting and PR reviews (defaults to automatic GitHub Actions token)."
+    required: false
+    default: ${{ github.token }}
+  path:
+    description: "Repository path or directory to audit."
+    required: false
+    default: "."
+  auto_approve:
+    description: "Whether to automatically approve and commit verified patches."
+    required: false
+    default: "true"
+  max_retries:
+    description: "Maximum number of self-correction loop iterations."
+    required: false
+    default: "3"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+        cache: "pip"
+
+    - name: Install Agent Dependencies
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r ${{ github.action_path }}/requirements.txt
+        pip install -e ${{ github.action_path }}
+
+    - name: Execute Self-Correcting Code Review Agent
+      shell: bash
+      env:
+        PYTHONPATH: ${{ github.action_path }}
+        GEMINI_API_KEY: ${{ inputs.gemini_api_key }}
+        QDRANT_URL: ${{ inputs.qdrant_url }}
+        QDRANT_API_KEY: ${{ inputs.qdrant_api_key }}
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        MAX_RETRIES: ${{ inputs.max_retries }}
+      run: |
+        AUTO_APPROVE_FLAG=""
+        if [ "${{ inputs.auto_approve }}" = "true" ]; then
+          AUTO_APPROVE_FLAG="--auto-approve"
+        fi
+        python -m code_review_agent.cli audit --path "${{ inputs.path }}" $AUTO_APPROVE_FLAG

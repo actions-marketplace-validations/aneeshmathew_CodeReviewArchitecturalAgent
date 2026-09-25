@@ -150,6 +150,66 @@ python -m code_review_agent.cli serve --host 0.0.0.0 --port 8000
 
 ---
 
+## ⚡ Use as a GitHub Action in Any Repository
+
+You can add this Self-Correcting Code Review Agent to **any GitHub repository** in seconds. No servers or hosting required!
+
+Create `.github/workflows/code_review.yml` in the target repository:
+
+```yaml
+name: "Architectural Code Review"
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Self-Correcting Code Review Agent
+        uses: your-username/CodeReviewArchitecturalAgent@v1
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          qdrant_url: ${{ secrets.QDRANT_URL }}
+          qdrant_api_key: ${{ secrets.QDRANT_API_KEY }}
+          auto_approve: "true"
+```
+
+---
+
+## 🚀 How to Publish to GitHub Marketplace
+
+Publishing this repository as an official GitHub Marketplace Action takes just 3 steps:
+
+1. **Push this repository to GitHub**:
+   ```bash
+   git remote add origin https://github.com/your-username/CodeReviewArchitecturalAgent.git
+   git branch -M main
+   git push -u origin main
+   ```
+2. **Draft a Release on GitHub**:
+   - Go to your repository on GitHub.
+   - On the right sidebar, click **Releases** -> **Draft a new release**.
+   - Set tag: `v1.0.0`.
+   - Title: `v1.0.0: Initial Release`.
+3. **Publish to Marketplace**:
+   - Check the banner box: **"Publish this Action to the GitHub Marketplace"**.
+   - Choose primary category: **Code quality** or **Continuous integration**.
+   - Click **Publish release**.
+
+Your action will immediately appear on the **GitHub Marketplace** and can be used across any public or private repository!
+
 ## 🧪 Benchmark Suite & Verification
 
 The repository includes a benchmark suite featuring intentional syntax errors, type incompatibilities, and logic bugs to measure the self-correction success rate:
