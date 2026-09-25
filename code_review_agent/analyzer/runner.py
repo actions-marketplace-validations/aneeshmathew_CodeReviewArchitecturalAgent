@@ -74,8 +74,8 @@ class StaticAnalysisRunner:
         )
 
     def run_ruff(self, target_files: Optional[List[str]] = None):
-        """Runs Ruff check with JSON output format."""
-        cmd = ["ruff", "check", "--output-format=json"]
+        """Runs Ruff check focusing on errors and warnings with JSON output format."""
+        cmd = ["ruff", "check", "--select=E,F,W", "--output-format=json"]
         if target_files:
             cmd.extend(target_files)
         else:
@@ -83,8 +83,8 @@ class StaticAnalysisRunner:
         return self.sandbox.run_command(cmd)
 
     def run_mypy(self, target_files: Optional[List[str]] = None):
-        """Runs Mypy with column numbers and non-interactive output."""
-        cmd = ["mypy", "--show-column-numbers", "--no-error-summary"]
+        """Runs Mypy with column numbers, non-interactive output, and ignoring uninstalled stubs."""
+        cmd = ["mypy", "--show-column-numbers", "--no-error-summary", "--ignore-missing-imports"]
         if target_files:
             cmd.extend(target_files)
         else:

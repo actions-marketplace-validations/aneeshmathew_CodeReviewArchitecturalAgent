@@ -4,6 +4,15 @@ from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional
 
 
+def _to_str(val: Any) -> str:
+    """Converts bytes, str, or None to safe string."""
+    if isinstance(val, bytes):
+        return val.decode("utf-8", errors="replace")
+    if val is None:
+        return ""
+    return str(val)
+
+
 @dataclass
 class DiagnosticError:
     """Standardized diagnostic error input for the LLM fix synthesis."""
@@ -24,8 +33,9 @@ class ErrorParser:
     """Parses raw CLI output from Ruff, Mypy, and Pytest into structured diagnostic objects."""
 
     @staticmethod
-    def parse_ruff(output_str: str) -> List[DiagnosticError]:
+    def parse_ruff(output_val: Any) -> List[DiagnosticError]:
         """Parses Ruff stdout/stderr. Attempts JSON first, falls back to regex."""
+        output_str = _to_str(output_val)
         diagnostics: List[DiagnosticError] = []
         if not output_str.strip():
             return diagnostics
@@ -64,8 +74,9 @@ class ErrorParser:
         return diagnostics
 
     @staticmethod
-    def parse_mypy(output_str: str) -> List[DiagnosticError]:
+    def parse_mypy(output_val: Any) -> List[DiagnosticError]:
         """Parses Mypy output e.g.: path/file.py:10: error: Incompatible types in assignment [assignment]"""
+        output_str = _to_str(output_val)
         diagnostics: List[DiagnosticError] = []
         pattern = re.compile(
             r"^([^:\n]+):(\d+):(?:(\d+):)?\s*(error|warning|note):\s*(.*?)(?:\s*\[([a-zA-Z0-9_\-]+)\])?$",
@@ -88,8 +99,9 @@ class ErrorParser:
         return diagnostics
 
     @staticmethod
-    def parse_pytest(output_str: str) -> List[DiagnosticError]:
+    def parse_pytest(output_val: Any) -> List[DiagnosticError]:
         """Parses Pytest failure summaries and stack traces."""
+        output_str = _to_str(output_val)
         diagnostics: List[DiagnosticError] = []
         if not output_str.strip():
             return diagnostics

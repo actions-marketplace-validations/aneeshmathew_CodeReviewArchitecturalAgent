@@ -68,21 +68,25 @@ class SandboxExecutor:
                 env=env
             )
             duration = time.time() - start_time
+            stdout_str = process.stdout.decode("utf-8", errors="replace") if isinstance(process.stdout, bytes) else (process.stdout or "")
+            stderr_str = process.stderr.decode("utf-8", errors="replace") if isinstance(process.stderr, bytes) else (process.stderr or "")
             return ExecutionResult(
                 command=cmd,
                 return_code=process.returncode,
-                stdout=process.stdout,
-                stderr=process.stderr,
+                stdout=stdout_str,
+                stderr=stderr_str,
                 duration_seconds=duration,
                 timed_out=False
             )
         except subprocess.TimeoutExpired as e:
             duration = time.time() - start_time
+            stdout_str = e.stdout.decode("utf-8", errors="replace") if isinstance(e.stdout, bytes) else (e.stdout or "")
+            stderr_str = e.stderr.decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else (e.stderr or "")
             return ExecutionResult(
                 command=cmd,
                 return_code=-1,
-                stdout=e.stdout or "",
-                stderr=(e.stderr or "") + f"\nProcess timed out after {self.timeout_seconds} seconds.",
+                stdout=stdout_str,
+                stderr=stderr_str + f"\nProcess timed out after {self.timeout_seconds} seconds.",
                 duration_seconds=duration,
                 timed_out=True
             )
