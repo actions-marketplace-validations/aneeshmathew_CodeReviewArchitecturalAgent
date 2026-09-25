@@ -183,8 +183,32 @@ jobs:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
           qdrant_url: ${{ secrets.QDRANT_URL }}
           qdrant_api_key: ${{ secrets.QDRANT_API_KEY }}
-          auto_approve: "true"
 ```
+
+### 🔐 How Secrets & API Keys Work for Users of This Action
+
+When other developers use your Action, **they never touch your `.env` file** (which remains strictly private and ignored by `.gitignore`). Instead, they securely inject their own keys via **GitHub Secrets**:
+
+```mermaid
+flowchart TD
+    subgraph "Other User's Repository"
+        A["1. User saves keys in:<br/>Settings ➔ Secrets and variables ➔ Actions<br/>• GEMINI_API_KEY<br/>• QDRANT_URL (Optional)<br/>• QDRANT_API_KEY (Optional)"]
+        B["2. In .github/workflows/code_review.yml:<br/>with:<br/>  gemini_api_key: ${{ secrets.GEMINI_API_KEY }}<br/>  qdrant_url: ${{ secrets.QDRANT_URL }}"]
+    end
+
+    subgraph "Your Action Engine (action.yml)"
+        C["3. action.yml receives inputs<br/>and injects into runner env:<br/>env:<br/>  GEMINI_API_KEY: ${{ inputs.gemini_api_key }}"]
+        D["4. Python code reads os.getenv('GEMINI_API_KEY')<br/>and executes LangGraph self-correction loop"]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+```
+
+#### What If the User Doesn't Have a Qdrant Account?
+- **Zero Configuration Required**: If `qdrant_url` or `qdrant_api_key` are omitted, the agent automatically initializes an in-memory Qdrant database (`:memory:`) inside the GitHub Action runner.
+- They get full AST indexing and semantic vector search without needing any Qdrant Cloud account!
 
 ---
 

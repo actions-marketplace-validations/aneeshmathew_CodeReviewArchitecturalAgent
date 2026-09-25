@@ -282,6 +282,36 @@ jobs:
 
 That's it! Your Action is now live on the **GitHub Marketplace** for the world to use.
 
+### 8.3 How API Keys & Secrets Work (No .env Sharing Needed!)
+
+A common question is: *"My API keys are in my `.env` file—how can someone else use my GitHub Action?"*
+
+1. **Your `.env` file is strictly private**:
+   - The `.env` file is on your computer only.
+   - It is listed in `.gitignore` and is **never pushed to GitHub**. Your private keys are never exposed.
+
+2. **Other users provide their own keys via GitHub Secrets**:
+   - In their repository, they open **Settings** ➔ **Secrets and variables** ➔ **Actions**.
+   - They click **New repository secret** and add their own free `GEMINI_API_KEY`.
+   - In their workflow, GitHub securely injects it using `${{ secrets.GEMINI_API_KEY }}`.
+
+3. **How `action.yml` bridges this**:
+   - The user passes the secret into the action:
+     ```yaml
+     with:
+       gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+     ```
+   - In `action.yml`, the input is received and assigned to the runner's environment:
+     ```yaml
+     env:
+       GEMINI_API_KEY: ${{ inputs.gemini_api_key }}
+     ```
+   - Our Python agent reads `os.getenv("GEMINI_API_KEY")`. Everything connects seamlessly and securely!
+
+4. **Zero-Setup Fallback (No Qdrant Account Needed)**:
+   - If the calling repository does not provide `qdrant_url` or `qdrant_api_key`, our agent automatically starts an embedded, in-memory Qdrant database (`:memory:`).
+   - Any developer can run the action on their repo **without signing up for Qdrant**!
+
 ---
 
 ## 🛡️ Safety & Sandbox Protection
