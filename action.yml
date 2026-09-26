@@ -1,5 +1,5 @@
 name: "Self-Correcting Code Review & Architectural Audit Agent"
-description: "Autonomous code review, AST static analysis (Ruff, Mypy, Pytest), and self-correcting fix synthesis powered by Google Gemini 3.5 Flash-Lite."
+description: "Autonomous code review, AST static analysis (Ruff, Mypy, Pytest), and self-correcting fixes via Google Gemini."
 author: "Google DeepMind Advanced Agentic Coding"
 branding:
   icon: "check-circle"
