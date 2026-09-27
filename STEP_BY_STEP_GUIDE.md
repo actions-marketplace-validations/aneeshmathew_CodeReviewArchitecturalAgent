@@ -8,7 +8,6 @@ This guide is designed for developers of all experience levels. Whether you are 
 
 ## 🎯 What Does This Agent Do?
 
-Imagine having a senior software engineer paired with a robot assistant:
 1. **Reads Your Code**: It scans your Python files using **Tree-Sitter** to understand your functions, classes, and how they call each other.
 2. **Runs Quality Tools**: It tests your code using **Ruff** (for syntax and style), **Mypy** (for type errors), and **Pytest** (to check if your tests pass).
 3. **Automatically Fixes Bugs**: If an error is found, it sends the error and code to **Google Gemini 3.5 Flash-Lite (Free Tier)** to generate a code fix.
@@ -99,8 +98,8 @@ GEMINI_MODEL=gemini-3.5-flash-lite
 GEMINI_EMBEDDING_MODEL=gemini-embedding-001
 
 # Qdrant Vector Store Configuration (Cloud Cluster)
-QDRANT_URL=https://1522134f-8fad-4ebd-a8d6-bf98c9d93832.us-west-1-0.aws.cloud.qdrant.io
-QDRANT_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+QDRANT_URL=https://<qdrant-cluster-id>.us-west-1-0.aws.cloud.qdrant.io
+QDRANT_API_KEY=<qdrant-api-key>
 QDRANT_COLLECTION_NAME=codebase_symbols
 
 # Agent Loop & Sandbox Configuration
@@ -108,12 +107,6 @@ MAX_RETRIES=3
 SANDBOX_TIMEOUT_SECONDS=30
 REQUIRE_HUMAN_APPROVAL_FOR_STRUCTURAL_CHANGES=true
 ```
-
-### How to get a Free Google Gemini API Key:
-1. Go to [Google AI Studio](https://aistudio.google.com/).
-2. Sign in with your Google account.
-3. Click **"Get API key"** and create a free key.
-4. Paste it into `.env` next to `GEMINI_API_KEY=`.
 
 > [!NOTE]
 > **No API Key yet? No problem!** The agent includes a built-in deterministic heuristic engine. You can run tests, index code, and perform benchmark self-corrections completely offline without any API key.
@@ -223,94 +216,6 @@ python -m code_review_agent.cli audit --path /path/to/your/project --files main.
   ```bash
   python -m code_review_agent.cli audit --path . --auto-approve
   ```
-
----
-
-## 🌐 Step 8: GitHub Action & Marketplace Publishing (Option 1)
-
-With Option 1, you **never** need to host a server or share personal tokens. GitHub handles all execution for free on every Pull Request!
-
-### 8.1 How Another Repo Uses Your GitHub Action
-Any developer can add your agent to their repository by dropping this simple workflow file into `.github/workflows/code_review.yml`:
-
-```yaml
-name: "Architectural Code Review"
-
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-
-jobs:
-  audit:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Run Self-Correcting Code Review Agent
-        uses: your-username/CodeReviewArchitecturalAgent@v1
-        with:
-          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          qdrant_url: ${{ secrets.QDRANT_URL }}
-          qdrant_api_key: ${{ secrets.QDRANT_API_KEY }}
-          auto_approve: "true"
-```
-
-### 8.2 How to Publish to GitHub Marketplace in 3 Minutes:
-1. **Push your code to GitHub**:
-   ```bash
-   git remote add origin https://github.com/your-username/CodeReviewArchitecturalAgent.git
-   git branch -M main
-   git push -u origin main
-   ```
-2. **Create a Release**:
-   - Go to your repository on GitHub.
-   - Click **Releases** (on the right) -> **Draft a new release**.
-   - Type tag version: `v1.0.0` (click "Create new tag: v1.0.0 on publish").
-   - Title: `v1.0.0: Initial Release`.
-3. **Check the Marketplace box**:
-   - Check **"Publish this Action to the GitHub Marketplace"**.
-   - Choose primary category: **Code quality**.
-   - Click **Publish release**.
-
-That's it! Your Action is now live on the **GitHub Marketplace** for the world to use.
-
-### 8.3 How API Keys & Secrets Work (No .env Sharing Needed!)
-
-A common question is: *"My API keys are in my `.env` file—how can someone else use my GitHub Action?"*
-
-1. **Your `.env` file is strictly private**:
-   - The `.env` file is on your computer only.
-   - It is listed in `.gitignore` and is **never pushed to GitHub**. Your private keys are never exposed.
-
-2. **Other users provide their own keys via GitHub Secrets**:
-   - In their repository, they open **Settings** ➔ **Secrets and variables** ➔ **Actions**.
-   - They click **New repository secret** and add their own free `GEMINI_API_KEY`.
-   - In their workflow, GitHub securely injects it using `${{ secrets.GEMINI_API_KEY }}`.
-
-3. **How `action.yml` bridges this**:
-   - The user passes the secret into the action:
-     ```yaml
-     with:
-       gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-     ```
-   - In `action.yml`, the input is received and assigned to the runner's environment:
-     ```yaml
-     env:
-       GEMINI_API_KEY: ${{ inputs.gemini_api_key }}
-     ```
-   - Our Python agent reads `os.getenv("GEMINI_API_KEY")`. Everything connects seamlessly and securely!
-
-4. **Zero-Setup Fallback (No Qdrant Account Needed)**:
-   - If the calling repository does not provide `qdrant_url` or `qdrant_api_key`, our agent automatically starts an embedded, in-memory Qdrant database (`:memory:`).
-   - Any developer can run the action on their repo **without signing up for Qdrant**!
 
 ---
 
