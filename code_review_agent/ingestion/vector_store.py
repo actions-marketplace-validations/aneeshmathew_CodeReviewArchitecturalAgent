@@ -1,64 +1,65 @@
 import hashlib
+import logging
 import math
 from typing import Any, Dict, List, Optional
-from qdrant_client import QdrantClient
-from qdrant_client.http import models as qmodels
 from ..config import settings
 from .chunker import CodeChunk
 
+logger = logging.getLogger(__name__)
+
 
 class CodeVectorStore:
-    """Manages indexing and semantic search over code chunks using Qdrant and Gemini Embeddings."""
+    """Manages indexing and semantic search over code chunks using Pinecone (Serverless) and Gemini Embeddings."""
 
     VECTOR_SIZE = 768
 
     def __init__(
         self,
-        collection_name: Optional[str] = None,
-        location: Optional[str] = None,
+        index_name: Optional[str] = None,
         api_key: Optional[str] = None,
-        url: Optional[str] = None,
-        qdrant_api_key: Optional[str] = None,
+        pinecone_api_key: Optional[str] = None,
+        cloud: Optional[str] = None,
+        region: Optional[str] = None,
     ):
-        self.collection_name = collection_name or settings.qdrant_collection_name
-        self.location = location or settings.qdrant_path
+        self.index_name = index_name or settings.pinecone_index_name
         self.gemini_api_key = api_key or settings.gemini_api_key
-        self.url = url or settings.qdrant_url
-        self.qdrant_api_key = qdrant_api_key or settings.qdrant_api_key
+        self.pinecone_api_key = pinecone_api_key or settings.pinecone_api_key
+        self.cloud = cloud or settings.pinecone_cloud
+        self.region = region or settings.pinecone_region
 
-        # Initialize Qdrant Client (Cloud URL, in-memory, or persistent local path)
-        if self.url:
+        self.pc = None
+        self.index = None
+        self._in_memory_vectors: List[Dict[str, Any]] = []
+
+        if self.pinecone_api_key:
             try:
-                self.client = QdrantClient(
-                    url=self.url,
-                    api_key=self.qdrant_api_key or None,
-                    timeout=3,
-                    check_compatibility=False
-                )
-                self._init_collection()
-            except Exception:
-                # Fallback to transient in-memory store if network is isolated/offline
-                self.client = QdrantClient(":memory:")
-                self._init_collection()
-        elif self.location == ":memory:":
-            self.client = QdrantClient(":memory:")
-            self._init_collection()
-        else:
-            self.client = QdrantClient(path=self.location)
-            self._init_collection()
+                from pinecone import Pinecone, ServerlessSpec
+                self.pc = Pinecone(api_key=self.pinecone_api_key)
+                self._init_index(ServerlessSpec)
+            except Exception as e:
+                logger.warning(f"Could not connect to Pinecone: {e}. Using transient in-memory store.")
+                self.pc = None
+                self.index = None
 
-    def _init_collection(self):
-        """Ensures the target collection exists with Cosine distance."""
-        collections = self.client.get_collections().collections
-        exists = any(c.name == self.collection_name for c in collections)
-        if not exists:
-            self.client.create_collection(
-                collection_name=self.collection_name,
-                vectors_config=qmodels.VectorParams(
-                    size=self.VECTOR_SIZE,
-                    distance=qmodels.Distance.COSINE
+    def _init_index(self, serverless_spec_cls):
+        """Ensures the target Pinecone serverless index exists."""
+        try:
+            existing_indexes = [idx.name for idx in self.pc.list_indexes()]
+            if self.index_name not in existing_indexes:
+                logger.info(f"Creating Pinecone serverless index: {self.index_name}")
+                self.pc.create_index(
+                    name=self.index_name,
+                    dimension=self.VECTOR_SIZE,
+                    metric="cosine",
+                    spec=serverless_spec_cls(
+                        cloud=self.cloud,
+                        region=self.region
+                    )
                 )
-            )
+            self.index = self.pc.Index(self.index_name)
+        except Exception as e:
+            logger.warning(f"Pinecone index initialization failed: {e}. Falling back to in-memory.")
+            self.index = None
 
     def _get_embedding(self, text: str) -> List[float]:
         """Generates embedding using Gemini API if key is present, else deterministic fallback."""
@@ -99,16 +100,24 @@ class CodeVectorStore:
             vector = [x / norm for x in vector]
         return vector
 
+    @staticmethod
+    def _cosine_similarity(v1: List[float], v2: List[float]) -> float:
+        """Computes cosine similarity between two float vectors."""
+        dot = sum(a * b for a, b in zip(v1, v2))
+        norm1 = math.sqrt(sum(a * a for a in v1))
+        norm2 = math.sqrt(sum(b * b for b in v2))
+        if norm1 == 0.0 or norm2 == 0.0:
+            return 0.0
+        return dot / (norm1 * norm2)
+
     def index_chunks(self, chunks: List[CodeChunk]) -> int:
-        """Indexes a list of code chunks into Qdrant."""
+        """Indexes a list of code chunks into Pinecone (or in-memory fallback)."""
         if not chunks:
             return 0
 
-        points = []
-        for i, chunk in enumerate(chunks):
+        vectors = []
+        for chunk in chunks:
             embedding = self._get_embedding(f"{chunk.name}\n{chunk.code}")
-            # Generate deterministic int ID
-            point_id = int(hashlib.sha256(chunk.chunk_id.encode("utf-8")).hexdigest()[:8], 16)
             payload = {
                 "chunk_id": chunk.chunk_id,
                 "file_path": chunk.file_path,
@@ -119,43 +128,56 @@ class CodeVectorStore:
                 "code": chunk.code,
                 **chunk.metadata
             }
-            points.append(
-                qmodels.PointStruct(
-                    id=point_id,
-                    vector=embedding,
-                    payload=payload
-                )
-            )
+            vectors.append({
+                "id": chunk.chunk_id,
+                "values": embedding,
+                "metadata": payload
+            })
 
-        try:
-            self.client.upsert(
-                collection_name=self.collection_name,
-                points=points
-            )
-        except Exception:
-            # Fallback to local in-memory client
-            self.client = QdrantClient(":memory:")
-            self._init_collection()
-            self.client.upsert(collection_name=self.collection_name, points=points)
-        return len(points)
+        if self.index is not None:
+            try:
+                # Batch upsert into Pinecone
+                batch_size = 100
+                for i in range(0, len(vectors), batch_size):
+                    self.index.upsert(vectors=vectors[i:i + batch_size])
+                return len(vectors)
+            except Exception as e:
+                logger.warning(f"Pinecone upsert failed: {e}. Falling back to in-memory vectors.")
+
+        # In-memory storage
+        self._in_memory_vectors.extend(vectors)
+        return len(vectors)
 
     def search_similar_code(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
         """Finds logically or semantically related code chunks."""
         query_vector = self._get_embedding(query)
-        try:
-            result = self.client.query_points(
-                collection_name=self.collection_name,
-                query=query_vector,
-                limit=limit
-            )
-            points = result.points
-        except Exception:
-            return []
 
-        results = []
-        for hit in points:
-            results.append({
-                "score": hit.score,
-                "payload": hit.payload
+        if self.index is not None:
+            try:
+                result = self.index.query(
+                    vector=query_vector,
+                    top_k=limit,
+                    include_metadata=True
+                )
+                matches = getattr(result, "matches", []) or []
+                results = []
+                for match in matches:
+                    results.append({
+                        "score": getattr(match, "score", 0.0),
+                        "payload": getattr(match, "metadata", {}) or {}
+                    })
+                return results
+            except Exception as e:
+                logger.warning(f"Pinecone query failed: {e}. Falling back to in-memory search.")
+
+        # In-memory cosine similarity search
+        scored = []
+        for item in self._in_memory_vectors:
+            score = self._cosine_similarity(query_vector, item["values"])
+            scored.append({
+                "score": score,
+                "payload": item["metadata"]
             })
-        return results
+
+        scored.sort(key=lambda x: x["score"], reverse=True)
+        return scored[:limit]

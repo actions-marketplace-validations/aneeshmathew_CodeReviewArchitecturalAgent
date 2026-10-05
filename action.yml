@@ -6,18 +6,54 @@ branding:
   color: "purple"
 
 inputs:
+  llm_provider:
+    description: "LLM Provider to use ('gemini', 'openai', 'anthropic', 'groq', 'custom', 'ollama'). Default: 'gemini'."
+    required: false
+    default: "gemini"
+  llm_model:
+    description: "Model name (e.g. 'gpt-4o-mini', 'claude-3-5-haiku-20241022', 'gemini-2.5-flash'). Defaults to provider best budget model."
+    required: false
+    default: ""
+  llm_api_key:
+    description: "API key for the selected provider."
+    required: false
+    default: ""
   gemini_api_key:
-    description: "Google Gemini API key (Free Tier). If omitted, heuristic fallback engine is used."
+    description: "Google Gemini API key."
     required: false
     default: ""
-  qdrant_url:
-    description: "Qdrant Cloud cluster endpoint URL (optional)."
+  openai_api_key:
+    description: "OpenAI API key."
     required: false
     default: ""
-  qdrant_api_key:
-    description: "Qdrant Cloud API key (optional)."
+  anthropic_api_key:
+    description: "Anthropic Claude API key."
     required: false
     default: ""
+  groq_api_key:
+    description: "Groq API key."
+    required: false
+    default: ""
+  llm_base_url:
+    description: "Custom base URL for OpenAI-compatible or local model endpoints."
+    required: false
+    default: ""
+  pinecone_api_key:
+    description: "Pinecone API key for serverless vector store (optional)."
+    required: false
+    default: ""
+  pinecone_index_name:
+    description: "Pinecone index name (default: codebase-symbols)."
+    required: false
+    default: "codebase-symbols"
+  pinecone_cloud:
+    description: "Pinecone serverless cloud provider (default: aws)."
+    required: false
+    default: "aws"
+  pinecone_region:
+    description: "Pinecone serverless cloud region (default: us-east-1)."
+    required: false
+    default: "us-east-1"
   github_token:
     description: "GitHub token for commenting and PR reviews (defaults to automatic GitHub Actions token)."
     required: false
@@ -54,9 +90,18 @@ runs:
       shell: bash
       env:
         PYTHONPATH: ${{ github.action_path }}
+        LLM_PROVIDER: ${{ inputs.llm_provider }}
+        LLM_MODEL: ${{ inputs.llm_model }}
+        LLM_API_KEY: ${{ inputs.llm_api_key }}
         GEMINI_API_KEY: ${{ inputs.gemini_api_key }}
-        QDRANT_URL: ${{ inputs.qdrant_url }}
-        QDRANT_API_KEY: ${{ inputs.qdrant_api_key }}
+        OPENAI_API_KEY: ${{ inputs.openai_api_key }}
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic_api_key }}
+        GROQ_API_KEY: ${{ inputs.groq_api_key }}
+        LLM_BASE_URL: ${{ inputs.llm_base_url }}
+        PINECONE_API_KEY: ${{ inputs.pinecone_api_key }}
+        PINECONE_INDEX_NAME: ${{ inputs.pinecone_index_name }}
+        PINECONE_CLOUD: ${{ inputs.pinecone_cloud }}
+        PINECONE_REGION: ${{ inputs.pinecone_region }}
         GITHUB_TOKEN: ${{ inputs.github_token }}
         MAX_RETRIES: ${{ inputs.max_retries }}
       run: |

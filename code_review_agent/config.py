@@ -8,17 +8,44 @@ load_dotenv()
 class Settings(BaseModel):
     """Application settings and configuration."""
 
-    # Gemini Free Tier Configuration
+    # LLM & Multi-Model BYOK (Bring Your Own Key) Configuration
+    llm_provider: str = Field(
+        default_factory=lambda: os.getenv("LLM_PROVIDER", "gemini").lower(),
+        description="LLM provider: 'gemini', 'openai', 'anthropic', 'groq', 'custom', or 'ollama'.",
+    )
+    llm_model: str = Field(
+        default_factory=lambda: os.getenv("LLM_MODEL", ""),
+        description="Model name (e.g., 'gpt-4o-mini', 'claude-3-5-haiku-20241022', 'gemini-2.5-flash').",
+    )
+    llm_api_key: str = Field(
+        default_factory=lambda: os.getenv("LLM_API_KEY", ""),
+        description="Generic API key for selected LLM provider.",
+    )
+    llm_base_url: str = Field(
+        default_factory=lambda: os.getenv("LLM_BASE_URL", os.getenv("OPENAI_BASE_URL", "")),
+        description="Custom base URL for OpenAI-compatible or local model endpoints.",
+    )
+
+    # Provider-Specific API Keys & Models
     gemini_api_key: str = Field(
         default_factory=lambda: os.getenv("GEMINI_API_KEY", "")
     )
     gemini_model: str = Field(
         default="gemini-3.5-flash-lite",
-        description="Default LLM model, utilizing Google Gemini Free Tier.",
+        description="Default Gemini model.",
     )
     gemini_embedding_model: str = Field(
         default="gemini-embedding-001",
         description="Embedding model for code vectorization.",
+    )
+    openai_api_key: str = Field(
+        default_factory=lambda: os.getenv("OPENAI_API_KEY", "")
+    )
+    anthropic_api_key: str = Field(
+        default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", "")
+    )
+    groq_api_key: str = Field(
+        default_factory=lambda: os.getenv("GROQ_API_KEY", "")
     )
 
     # Agent Loop Controls
@@ -31,22 +58,22 @@ class Settings(BaseModel):
         description="Timeout for running tests and analyzers inside sandbox.",
     )
 
-    # Qdrant Vector Store
-    qdrant_url: str = Field(
-        default_factory=lambda: os.getenv("QDRANT_URL", ""),
-        description="Remote Qdrant Cloud cluster URL.",
+    # Pinecone Vector Store
+    pinecone_api_key: str = Field(
+        default_factory=lambda: os.getenv("PINECONE_API_KEY", ""),
+        description="Pinecone API key for serverless vector index.",
     )
-    qdrant_api_key: str = Field(
-        default_factory=lambda: os.getenv("QDRANT_API_KEY", ""),
-        description="Qdrant Cloud API key.",
+    pinecone_index_name: str = Field(
+        default_factory=lambda: os.getenv("PINECONE_INDEX_NAME", "codebase-symbols"),
+        description="Pinecone index name (lowercase alphanumeric and hyphens only).",
     )
-    qdrant_path: str = Field(
-        default=":memory:",
-        description="Path to local Qdrant database or ':memory:' for transient store when URL is not set.",
+    pinecone_cloud: str = Field(
+        default_factory=lambda: os.getenv("PINECONE_CLOUD", "aws"),
+        description="Pinecone serverless cloud provider (e.g., 'aws').",
     )
-    qdrant_collection_name: str = Field(
-        default="codebase_symbols",
-        description="Collection name for indexed symbols.",
+    pinecone_region: str = Field(
+        default_factory=lambda: os.getenv("PINECONE_REGION", "us-east-1"),
+        description="Pinecone serverless region (e.g., 'us-east-1').",
     )
 
     # GitHub Integration

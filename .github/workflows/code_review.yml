@@ -1,10 +1,23 @@
 name: "Self-Correcting Architectural Code Review"
 
 on:
+  # Allows manual on-demand triggering from GitHub Actions UI (saves AI Free Tier quota)
+  workflow_dispatch:
+    inputs:
+      auto_approve:
+        description: "Automatically approve and commit verified patches"
+        required: false
+        default: "false"
+        type: boolean
+
+  # Trigger on PRs only for actual code changes and when not in draft
   pull_request:
-    types: [opened, synchronize, reopened]
-  push:
-    branches: [main, master]
+    types: [opened, reopened]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - ".gitignore"
+      - "LICENSE"
 
 permissions:
   contents: write
@@ -13,6 +26,8 @@ permissions:
 
 jobs:
   review:
+    # Skip draft PRs to prevent burning AI free tier quota on WIP work
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && github.event.pull_request.draft == false)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -24,7 +39,7 @@ jobs:
         uses: ./
         with:
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
-          qdrant_url: ${{ secrets.QDRANT_URL }}
-          qdrant_api_key: ${{ secrets.QDRANT_API_KEY }}
+          pinecone_api_key: ${{ secrets.PINECONE_API_KEY }}
+          pinecone_index_name: "codebase-symbols"
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          auto_approve: "true"
+          auto_approve: ${{ inputs.auto_approve || 'false' }}

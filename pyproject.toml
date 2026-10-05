@@ -14,7 +14,7 @@ dependencies = [
     "langchain-core",
     "tree-sitter",
     "tree-sitter-python",
-    "qdrant-client",
+    "pinecone>=3.0.0",
     "ruff",
     "mypy",
     "pytest",

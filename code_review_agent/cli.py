@@ -17,10 +17,24 @@ def run_audit(args):
         print(f"Error: Path '{workspace}' does not exist.")
         sys.exit(1)
 
+    if args.provider:
+        settings.llm_provider = args.provider
+    if args.model:
+        settings.llm_model = args.model
+    if args.api_key:
+        settings.llm_api_key = args.api_key
+    if args.base_url:
+        settings.llm_base_url = args.base_url
+
+    active_provider = settings.llm_provider.capitalize()
+    active_model = settings.llm_model or (
+        settings.gemini_model if settings.llm_provider == "gemini" else "default"
+    )
+
     print("=" * 60)
     print("🚀 Self-Correcting Code Review & Architectural Audit Agent")
     print(f"📂 Workspace: {workspace}")
-    print(f"🤖 LLM Model: {settings.gemini_model} (Google Gemini Free Tier)")
+    print(f"🤖 LLM: {active_provider} [{active_model}]")
     print(f"🔄 Max Retries: {settings.max_retries}")
     print("=" * 60)
 
@@ -83,6 +97,15 @@ def main():
     audit_parser.add_argument("--path", "-p", default=".", help="Workspace path to audit (default: .)")
     audit_parser.add_argument("--files", "-f", nargs="*", default=None, help="Specific files to audit")
     audit_parser.add_argument("--auto-approve", action="store_true", help="Automatically approve structural changes")
+    audit_parser.add_argument(
+        "--provider",
+        choices=["gemini", "openai", "anthropic", "groq", "custom", "ollama"],
+        default=None,
+        help="LLM provider (default: from env or gemini)",
+    )
+    audit_parser.add_argument("--model", "-m", default=None, help="Model name (e.g. gpt-4o-mini, claude-3-5-sonnet, gemini-2.5-flash)")
+    audit_parser.add_argument("--api-key", default=None, help="API key for selected provider")
+    audit_parser.add_argument("--base-url", default=None, help="Custom base URL for local/OpenAI-compatible endpoints (e.g. http://localhost:11434/v1)")
     audit_parser.set_defaults(func=run_audit)
 
     # Index command
