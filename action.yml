@@ -10,14 +10,22 @@ inputs:
     description: "Google Gemini API key (Free Tier). If omitted, heuristic fallback engine is used."
     required: false
     default: ""
-  qdrant_url:
-    description: "Qdrant Cloud cluster endpoint URL (optional)."
+  pinecone_api_key:
+    description: "Pinecone API key for serverless vector store (optional)."
     required: false
     default: ""
-  qdrant_api_key:
-    description: "Qdrant Cloud API key (optional)."
+  pinecone_index_name:
+    description: "Pinecone index name (default: codebase-symbols)."
     required: false
-    default: ""
+    default: "codebase-symbols"
+  pinecone_cloud:
+    description: "Pinecone serverless cloud provider (default: aws)."
+    required: false
+    default: "aws"
+  pinecone_region:
+    description: "Pinecone serverless cloud region (default: us-east-1)."
+    required: false
+    default: "us-east-1"
   github_token:
     description: "GitHub token for commenting and PR reviews (defaults to automatic GitHub Actions token)."
     required: false
@@ -55,8 +63,10 @@ runs:
       env:
         PYTHONPATH: ${{ github.action_path }}
         GEMINI_API_KEY: ${{ inputs.gemini_api_key }}
-        QDRANT_URL: ${{ inputs.qdrant_url }}
-        QDRANT_API_KEY: ${{ inputs.qdrant_api_key }}
+        PINECONE_API_KEY: ${{ inputs.pinecone_api_key }}
+        PINECONE_INDEX_NAME: ${{ inputs.pinecone_index_name }}
+        PINECONE_CLOUD: ${{ inputs.pinecone_cloud }}
+        PINECONE_REGION: ${{ inputs.pinecone_region }}
         GITHUB_TOKEN: ${{ inputs.github_token }}
         MAX_RETRIES: ${{ inputs.max_retries }}
       run: |

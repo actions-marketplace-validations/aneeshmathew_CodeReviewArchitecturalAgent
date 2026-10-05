@@ -41,7 +41,7 @@ The Self-Correcting Code Review & Architectural Audit Agent is an developer tool
             v                              v                              v
 +------------------------+     +------------------------+     +------------------------+
 | Semantic Code Store    |     |  Execution Sandbox     |     |  Human Approval Node   |
-| (Qdrant Code Vectors)  |     |   (Isolated Docker)    |     | (Post GitHub Comments) |
+| (Pinecone Code Vectors)|     |   (Isolated Docker)    |     | (Post GitHub Comments) |
 +------------------------+     +------------------------+     +------------------------+
 ```
 
@@ -54,7 +54,7 @@ The Self-Correcting Code Review & Architectural Audit Agent is an developer tool
 | **Code Parsing** | `tree-sitter` / `ast` (Python) | Structural parsing of ASTs to extract functions, classes, and call graphs |
 | **Agent Framework** | LangGraph | Stateful self-correction execution loops |
 | **Static Analyzers**| Ruff, Mypy, Pytest | Automated verification tools |
-| **Vector Indexing** | Qdrant / Pinecone + CodeBERT or OpenAI Embeddings | Semantic code search and impact analysis |
+| **Vector Indexing** | Pinecone Serverless (or In-Memory) | Semantic code search and impact analysis |
 | **Sandbox Execution**| Docker Container Engine / Subprocess Sandbox | Safe execution of test suites against LLM-generated code fixes |
 | **Integration** | PyGithub / GitHub REST API | Automated PR generation, inline line-item comment additions |
 

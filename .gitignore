@@ -34,8 +34,8 @@ env/
 .coverage
 htmlcov/
 
-# Local Vector Store
-.qdrant_data/
+# Local Vector Store Cache
+.pinecone_cache/
 
 # Environment Variables
 .env
