@@ -129,8 +129,28 @@ cp .env.example .env
 
 Edit `.env`:
 ```ini
+# ==========================================
+# 🤖 Multi-Model LLM Configuration (Bring Your Own Key)
+# ==========================================
+# Select provider: 'gemini' (default), 'openai', 'anthropic', 'groq', 'custom', 'ollama'
+LLM_PROVIDER=gemini
+
+# Specific model name (Optional - defaults to provider's best budget model):
+#   - Gemini: gemini-3.5-flash-lite, gemini-2.5-flash, gemini-1.5-pro
+#   - OpenAI: gpt-4o-mini, gpt-4o, o3-mini
+#   - Anthropic: claude-3-5-haiku-20241022, claude-3-5-sonnet-latest
+#   - Groq: llama-3.3-70b-versatile, mixtral-8x7b-32768
+#   - Ollama / Custom: qwen2.5-coder:7b, deepseek-coder:6.7b
+LLM_MODEL=
+
+# --- Provider API Keys (Set the one matching LLM_PROVIDER) ---
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-3.5-flash-lite
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+GROQ_API_KEY=
+
+# Custom endpoint / Local Ollama URL (e.g. http://localhost:11434/v1 for 100% free local models)
+LLM_BASE_URL=
 ```
 
 *(Note: The agent includes deterministic heuristic fallback repair engines, so unit tests and offline audits can run even without an active API key).*
