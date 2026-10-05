@@ -92,10 +92,25 @@ cp .env.example .env
 Open `.env` in any text editor. It contains settings like this:
 
 ```ini
-# Google Gemini API Settings (Free Tier)
+# Choose Provider: 'gemini' (default), 'openai', 'anthropic', 'groq', 'ollama', or 'custom'
+LLM_PROVIDER=gemini
+
+# Specific Model (Optional):
+# - Gemini: gemini-3.5-flash-lite, gemini-2.5-flash, gemini-1.5-pro
+# - OpenAI: gpt-4o-mini, gpt-4o, o3-mini
+# - Anthropic: claude-3-5-haiku-20241022, claude-3-5-sonnet-latest
+# - Groq: llama-3.3-70b-versatile
+# - Ollama / Custom: qwen2.5-coder:7b
+LLM_MODEL=
+
+# Set the key matching your LLM_PROVIDER:
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-3.5-flash-lite
-GEMINI_EMBEDDING_MODEL=gemini-embedding-001
+OPENAI_API_KEY=
+ANTHROPIC_API_KEY=
+GROQ_API_KEY=
+
+# Local Ollama endpoint (if using local offline models):
+LLM_BASE_URL=http://localhost:11434/v1
 
 # Pinecone Vector Store Configuration (Serverless)
 PINECONE_API_KEY=your_pinecone_api_key_here
@@ -109,8 +124,21 @@ SANDBOX_TIMEOUT_SECONDS=30
 REQUIRE_HUMAN_APPROVAL_FOR_STRUCTURAL_CHANGES=true
 ```
 
+### Supported Models & Providers (Bring Your Own Key)
+
+The agent supports any major AI provider, as well as local offline models:
+
+| Provider | Supported Models (Examples) | Environment Variable | CLI Flag | Default Model |
+| :--- | :--- | :--- | :--- | :--- |
+| **Google Gemini** | `gemini-3.5-flash-lite`, `gemini-2.5-flash`, `gemini-1.5-pro` | `GEMINI_API_KEY` | `--provider gemini` | `gemini-3.5-flash-lite` |
+| **OpenAI** | `gpt-4o-mini`, `gpt-4o`, `o1`, `o3-mini` | `OPENAI_API_KEY` | `--provider openai` | `gpt-4o-mini` |
+| **Anthropic Claude** | `claude-3-5-haiku-20241022`, `claude-3-5-sonnet-latest` | `ANTHROPIC_API_KEY` | `--provider anthropic` | `claude-3-5-haiku-20241022` |
+| **Groq** | `llama-3.3-70b-versatile`, `mixtral-8x7b-32768` | `GROQ_API_KEY` | `--provider groq` | `llama-3.3-70b-versatile` |
+| **Local Ollama** | `qwen2.5-coder:7b`, `deepseek-coder:6.7b` *(100% Free & Offline)* | *None (Local)* | `--provider ollama` | `qwen2.5-coder` |
+| **Custom / vLLM** | Any OpenAI-compatible endpoint | `LLM_BASE_URL` | `--provider custom` | `default` |
+
 > [!NOTE]
-> **No API Key yet? No problem!** The agent includes a built-in deterministic heuristic engine. You can run tests, index code, and perform benchmark self-corrections completely offline without any API key.
+> **No API Key yet? No problem!** The agent includes a built-in deterministic heuristic engine. You can run tests, index code, and perform benchmark self-corrections completely offline without any API key. Or you can run completely free with local models using **Ollama** (`LLM_PROVIDER=ollama`).
 
 ---
 
@@ -217,6 +245,26 @@ python -m code_review_agent.cli audit --path /path/to/your/project --files main.
   ```bash
   python -m code_review_agent.cli audit --path . --auto-approve
   ```
+
+### 7.4 Running with Different AI Models (Bring Your Own Key)
+You can specify the AI model and provider on the command line:
+
+```bash
+# 1. Google Gemini (Default):
+python -m code_review_agent.cli audit --path . --provider gemini --model gemini-2.5-flash --api-key your_gemini_key
+
+# 2. OpenAI GPT-4o-mini (Cost-effective & powerful):
+python -m code_review_agent.cli audit --path . --provider openai --model gpt-4o-mini --api-key sk-...
+
+# 3. Anthropic Claude 3.5 Sonnet (State-of-the-art coding):
+python -m code_review_agent.cli audit --path . --provider anthropic --model claude-3-5-sonnet-latest --api-key sk-ant-...
+
+# 4. Groq (Blazing fast Llama 3.3):
+python -m code_review_agent.cli audit --path . --provider groq --model llama-3.3-70b-versatile --api-key gsk_...
+
+# 5. Local Ollama (100% Free, Private, and Offline):
+python -m code_review_agent.cli audit --path . --provider ollama --model qwen2.5-coder:7b
+```
 
 ---
 

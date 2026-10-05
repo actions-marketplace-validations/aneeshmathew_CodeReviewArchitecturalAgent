@@ -6,8 +6,36 @@ branding:
   color: "purple"
 
 inputs:
+  llm_provider:
+    description: "LLM Provider to use ('gemini', 'openai', 'anthropic', 'groq', 'custom', 'ollama'). Default: 'gemini'."
+    required: false
+    default: "gemini"
+  llm_model:
+    description: "Model name (e.g. 'gpt-4o-mini', 'claude-3-5-haiku-20241022', 'gemini-2.5-flash'). Defaults to provider best budget model."
+    required: false
+    default: ""
+  llm_api_key:
+    description: "API key for the selected provider."
+    required: false
+    default: ""
   gemini_api_key:
-    description: "Google Gemini API key (Free Tier). If omitted, heuristic fallback engine is used."
+    description: "Google Gemini API key."
+    required: false
+    default: ""
+  openai_api_key:
+    description: "OpenAI API key."
+    required: false
+    default: ""
+  anthropic_api_key:
+    description: "Anthropic Claude API key."
+    required: false
+    default: ""
+  groq_api_key:
+    description: "Groq API key."
+    required: false
+    default: ""
+  llm_base_url:
+    description: "Custom base URL for OpenAI-compatible or local model endpoints."
     required: false
     default: ""
   pinecone_api_key:
@@ -62,7 +90,14 @@ runs:
       shell: bash
       env:
         PYTHONPATH: ${{ github.action_path }}
+        LLM_PROVIDER: ${{ inputs.llm_provider }}
+        LLM_MODEL: ${{ inputs.llm_model }}
+        LLM_API_KEY: ${{ inputs.llm_api_key }}
         GEMINI_API_KEY: ${{ inputs.gemini_api_key }}
+        OPENAI_API_KEY: ${{ inputs.openai_api_key }}
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic_api_key }}
+        GROQ_API_KEY: ${{ inputs.groq_api_key }}
+        LLM_BASE_URL: ${{ inputs.llm_base_url }}
         PINECONE_API_KEY: ${{ inputs.pinecone_api_key }}
         PINECONE_INDEX_NAME: ${{ inputs.pinecone_index_name }}
         PINECONE_CLOUD: ${{ inputs.pinecone_cloud }}
